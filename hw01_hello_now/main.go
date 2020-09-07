@@ -16,7 +16,6 @@ func formatDatetime(t time.Time) string {
 }
 
 func main() {
-
 	debug := false
 	_, exists := os.LookupEnv("DEBUG")
 	if exists {
