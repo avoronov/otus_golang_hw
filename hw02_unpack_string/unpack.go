@@ -10,68 +10,50 @@ import (
 // ErrInvalidString is the error raised when invalid string is given.
 var ErrInvalidString = errors.New("invalid string")
 
-func doStep(curr rune, prev rune, result *strings.Builder) (rune, error) {
-	if prev == 0 {
-		return curr, nil
-	}
-
-	if unicode.IsDigit(curr) {
-		if !unicode.IsLetter(prev) {
-			return 0, ErrInvalidString
-		}
-
-		repeatCount, err := strconv.Atoi(string(curr))
-		if err != nil {
-			return 0, err
-		}
-
-		tmp := strings.Repeat(string(prev), repeatCount)
-		result.WriteString(tmp)
-
-		return 0, nil
-	}
-
-	if unicode.IsLetter(curr) {
-		if !unicode.IsLetter(prev) {
-			return 0, ErrInvalidString
-		}
-
-		result.WriteRune(prev)
-
-		return curr, nil
-	}
-
-	if curr == 0 {
-		if !unicode.IsLetter(prev) {
-			return 0, ErrInvalidString
-		}
-
-		result.WriteRune(prev)
-
-		return 0, nil
-	}
-
-	return 0, ErrInvalidString
-}
-
 // Unpack is the function which perform simple unpacking.
 func Unpack(input string) (string, error) {
 	var prev rune
-	var err error
 	var result strings.Builder
 
 	for _, curr := range input {
-		prev, err = doStep(curr, prev, &result)
-		if err != nil {
-			return "", err
+		if prev == 0 {
+			prev = curr
+			continue
 		}
+
+		if unicode.IsDigit(prev) {
+			return "", ErrInvalidString
+		}
+
+		if unicode.IsDigit(curr) {
+			repeatCount, err := strconv.Atoi(string(curr))
+			if err != nil {
+				return "", err
+			}
+
+			tmp := strings.Repeat(string(prev), repeatCount)
+			result.WriteString(tmp)
+
+			prev = 0
+
+			continue
+		}
+
+		if unicode.IsLetter(curr) {
+			result.WriteRune(prev)
+			prev = curr
+
+			continue
+		}
+
+		return "", ErrInvalidString
 	}
 
 	if prev != 0 {
-		_, err = doStep(0, prev, &result)
-		if err != nil {
-			return "", err
+		if unicode.IsDigit(prev) {
+			return "", ErrInvalidString
 		}
+		result.WriteRune(prev)
 	}
 
 	return result.String(), nil
