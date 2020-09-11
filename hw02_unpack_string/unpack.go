@@ -35,18 +35,11 @@ func Unpack(input string) (string, error) {
 			result.WriteString(tmp)
 
 			prev = 0
-
 			continue
 		}
 
-		if unicode.IsLetter(curr) {
-			result.WriteRune(prev)
-			prev = curr
-
-			continue
-		}
-
-		return "", ErrInvalidString
+		result.WriteRune(prev)
+		prev = curr
 	}
 
 	if prev != 0 {
