@@ -12,6 +12,7 @@ var ErrInvalidString = errors.New("invalid string")
 
 // Unpack is the function which perform simple unpacking.
 func Unpack(input string) (string, error) {
+	var escape bool
 	var prev rune
 	var result strings.Builder
 
@@ -22,10 +23,18 @@ func Unpack(input string) (string, error) {
 		}
 
 		if unicode.IsDigit(prev) {
-			return "", ErrInvalidString
+			if !escape {
+				return "", ErrInvalidString
+			}
+			escape = false
 		}
 
 		if unicode.IsDigit(curr) {
+			if escape {
+				prev = curr
+				continue
+			}
+
 			repeatCount, err := strconv.Atoi(string(curr))
 			if err != nil {
 				return "", err
@@ -38,12 +47,24 @@ func Unpack(input string) (string, error) {
 			continue
 		}
 
+		if curr == '\\' {
+			if escape {
+				escape = false
+				continue
+			}
+
+			escape = true
+		}
+
 		result.WriteRune(prev)
 		prev = curr
 	}
 
 	if prev != 0 {
-		if unicode.IsDigit(prev) {
+		if unicode.IsDigit(prev) && !escape {
+			return "", ErrInvalidString
+		}
+		if escape && prev == '\\' {
 			return "", ErrInvalidString
 		}
 		result.WriteRune(prev)
