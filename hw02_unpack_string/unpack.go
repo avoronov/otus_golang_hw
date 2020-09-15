@@ -17,7 +17,7 @@ func Unpack(input string) (string, error) {
 	var result strings.Builder
 
 	for _, curr := range input {
-		if prev == 0 {
+		if prev == 0 && curr != '\\' {
 			prev = curr
 			continue
 		}
@@ -56,7 +56,9 @@ func Unpack(input string) (string, error) {
 			escape = true
 		}
 
-		result.WriteRune(prev)
+		if prev != 0 {
+			result.WriteRune(prev)
+		}
 		prev = curr
 	}
 

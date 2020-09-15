@@ -96,6 +96,15 @@ func TestUnpackWithEscape(t *testing.T) {
 			input:    `qwe\\\\`,
 			expected: `qwe\\`,
 		},
+		{
+			input:    `\4`,
+			expected: `4`,
+		},
+		{
+			input:    `\`,
+			expected: "",
+			err:      ErrInvalidString,
+		},
 	} {
 		result, err := Unpack(tst.input)
 		require.Equal(t, tst.err, err)
