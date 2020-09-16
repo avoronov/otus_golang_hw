@@ -17,21 +17,14 @@ func Unpack(input string) (string, error) {
 	var result strings.Builder
 
 	for _, curr := range input {
-		if prev == 0 && curr != '\\' {
-			prev = curr
-			continue
-		}
-
-		if unicode.IsDigit(prev) {
-			if !escape {
+		if unicode.IsDigit(curr) {
+			if !escape && prev == 0 {
 				return "", ErrInvalidString
 			}
-			escape = false
-		}
 
-		if unicode.IsDigit(curr) {
 			if escape {
 				prev = curr
+				escape = false
 				continue
 			}
 
@@ -49,26 +42,32 @@ func Unpack(input string) (string, error) {
 
 		if curr == '\\' {
 			if escape {
+				prev = '\\'
 				escape = false
 				continue
 			}
 
+			if prev != 0 {
+				result.WriteRune(prev)
+			}
+			prev = 0
+
 			escape = true
+			continue
 		}
 
 		if prev != 0 {
 			result.WriteRune(prev)
 		}
+
 		prev = curr
 	}
 
+	if escape && prev == 0 {
+		return "", ErrInvalidString
+	}
+
 	if prev != 0 {
-		if unicode.IsDigit(prev) && !escape {
-			return "", ErrInvalidString
-		}
-		if escape && prev == '\\' {
-			return "", ErrInvalidString
-		}
 		result.WriteRune(prev)
 	}
 
