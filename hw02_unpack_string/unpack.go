@@ -63,7 +63,7 @@ func Unpack(input string) (string, error) {
 		prev = curr
 	}
 
-	if escape && prev == 0 {
+	if escape {
 		return "", ErrInvalidString
 	}
 
