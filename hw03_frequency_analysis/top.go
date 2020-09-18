@@ -42,22 +42,19 @@ func Top10(input string) []string {
 	inp := sanitize(&input)
 	input = *inp
 
-	wordFreq := map[string]int{}
+	frequencies := map[string]int{}
 	for _, word := range strings.Split(input, " ") {
-		wordFreq[word]++
+		frequencies[word]++
 	}
 
-	type word struct {
-		Name string
-		Freq int
+	i := 0
+	words := make([]string, len(frequencies))
+	for word := range frequencies {
+		words[i] = word
+		i++
 	}
 
-	words := []word{}
-	for name, freq := range wordFreq {
-		words = append(words, word{name, freq})
-	}
-
-	sort.Slice(words, func(i, j int) bool { return words[i].Freq > words[j].Freq })
+	sort.Slice(words, func(i, j int) bool { return frequencies[words[i]] > frequencies[words[j]] })
 
 	var size int
 	if len(words) > maxSize {
@@ -66,10 +63,5 @@ func Top10(input string) []string {
 		size = len(words)
 	}
 
-	result := []string{}
-	for _, word := range words[:size] {
-		result = append(result, word.Name)
-	}
-
-	return result
+	return words[:size]
 }
