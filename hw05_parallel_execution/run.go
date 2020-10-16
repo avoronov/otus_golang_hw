@@ -11,71 +11,68 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 // Task is the abstraction for piece of job to be done.
 type Task func() error
 
-func worker(taskach <-chan Task, errorach chan<- struct{}) {
+func worker(taskCh <-chan Task, errorCh chan<- struct{}, quitCh <-chan struct{}) {
+	var err error
 	for {
-		select {
-		case t, ok := <-taskach:
-			if !ok {
+		if err != nil {
+			select {
+			case errorCh <- struct{}{}:
+				err = nil
+			case <-quitCh:
 				return
 			}
-			err := t()
-			if err != nil {
-				errorach <- struct{}{}
-			}
-			_ = 1 // DELETE ME
+		}
+
+		select {
+		case t := <-taskCh:
+			err = t()
+		case <-quitCh:
+			return
 		}
 	}
 }
 
-// Run starts tasks in N goroutines and stops its work when receiving M errors from tasks
-func Run(tasks []Task, N int, M int) error {
-	var totalErrors, totalWorkers int
-	var wg sync.WaitGroup
+// Run starts tasks in N goroutines and stops its work when receiving M errors from tasks.
+func Run(tasks []Task, workersCount int, maxErrors int) error {
+	wg := sync.WaitGroup{}
 
-	taskach := make(chan Task)
-	errorach := make(chan struct{})
+	taskCh := make(chan Task)
+	errorCh := make(chan struct{})
+	quitCh := make(chan struct{})
 
-	for i, t := range tasks {
-		if totalErrors >= M {
+	for i := 0; i < workersCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			worker(taskCh, errorCh, quitCh)
+		}()
+	}
+
+	var i int
+	var totalErrors int
+	for {
+		if i == len(tasks) || totalErrors >= maxErrors {
 			break
 		}
 
-		if (i-totalErrors >= totalWorkers) && totalWorkers < N {
-			go func() {
-				wg.Add(1)
-				defer wg.Done()
-				worker(taskach, errorach)
-			}()
-			totalWorkers++
-		}
+		t := tasks[i]
 
-		for {
-			var stop bool
-
-			select {
-			case <-errorach:
-				totalErrors++
-				if totalErrors >= M {
-					stop = true
-				}
-			case taskach <- t:
-				stop = true
-			default:
-			}
-
-			if stop {
-				break
-			}
+		select {
+		case <-errorCh:
+			totalErrors++
+		case taskCh <- t:
+			i++
 		}
 	}
 
-	close(taskach)
+	close(quitCh)
 
 	wg.Wait()
 
-	close(errorach)
+	close(taskCh)
+	close(errorCh)
 
-	if totalErrors >= M {
+	if totalErrors >= maxErrors {
 		return ErrErrorsLimitExceeded
 	}
 
