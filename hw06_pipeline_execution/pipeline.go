@@ -15,7 +15,7 @@ type Stage func(in In) (out Out)
 // ExecutePipeline is the func for executing stages.
 func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	var out Out = in
-	for i, s := range stages {
+	for _, s := range stages {
 		tmp := make(Bi)
 		go func(in In) {
 			defer close(tmp)
@@ -24,13 +24,13 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 				case val, ok := <-in:
 					if !ok {
 						return
-					})
+					}
 					tmp <- val
 				case <-done:
 					return
 				}
 			}
-		}(i, out)
+		}(out)
 
 		out = s(tmp)
 	}
