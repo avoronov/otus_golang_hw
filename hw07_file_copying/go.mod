@@ -1,3 +1,8 @@
-module github.com/fixme_my_friend/hw07_file_copying
+module github.com/avoronov/otus_golang_hw/hw07_file_copying
 
-go 1.14
+go 1.15
+
+require (
+	github.com/cheggaaa/pb/v3 v3.0.5
+	github.com/fatih/color v1.9.0 // indirect
+)
