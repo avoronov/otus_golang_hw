@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -27,7 +28,7 @@ func Copy(fromPath string, toPath string, offset, limit int64) error {
 
 	tmpfile, err := ioutil.TempFile("", "temp.dest.*")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create temp file: %w", err)
 	}
 	defer func() {
 		tmpfile.Close()
@@ -41,7 +42,7 @@ func Copy(fromPath string, toPath string, offset, limit int64) error {
 
 	err = os.Rename(tmpfile.Name(), toPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
 
 	return nil
@@ -50,12 +51,12 @@ func Copy(fromPath string, toPath string, offset, limit int64) error {
 func prepareSourceAndLimit(fromPath string, offset, limit int64) (*os.File, int64, error) {
 	src, err := os.Open(fromPath)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("failed to open file: %w", err)
 	}
 
 	srcInfo, err := src.Stat()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("failed to get file's stat: %w", err)
 	}
 
 	err = validate(srcInfo, offset)
@@ -68,7 +69,7 @@ func prepareSourceAndLimit(fromPath string, offset, limit int64) (*os.File, int6
 	if offset > 0 {
 		_, err = src.Seek(offset, 0)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("failed to seek in file: %w", err)
 		}
 	}
 
@@ -104,10 +105,10 @@ func copy(src io.Reader, dst io.Writer, limit int64) error {
 		time.Sleep(time.Millisecond)
 		bar.Increment()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
-			return err
+			return fmt.Errorf("failed to copy between files: %w", err)
 		}
 		total += n
 		if total == limit {

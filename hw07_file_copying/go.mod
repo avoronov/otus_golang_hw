@@ -4,5 +4,5 @@ go 1.15
 
 require (
 	github.com/cheggaaa/pb/v3 v3.0.5
-	github.com/fatih/color v1.9.0 // indirect
+	github.com/golangci/golangci-lint v1.32.2 // indirect
 )
