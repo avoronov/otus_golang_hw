@@ -59,12 +59,18 @@ func prepareSourceAndLimit(fromPath string, offset, limit int64) (*os.File, int6
 		return nil, 0, fmt.Errorf("failed to get file's stat: %w", err)
 	}
 
-	err = validate(srcInfo, offset)
-	if err != nil {
-		return nil, 0, err
+	if !srcInfo.Mode().IsRegular() {
+		return nil, 0, ErrUnsupportedFile
 	}
 
-	limit = tuneLimit(srcInfo, offset, limit)
+	if offset > srcInfo.Size() {
+		return nil, 0, ErrOffsetExceedsFileSize
+	}
+
+	remainBytes := srcInfo.Size() - offset
+	if limit == 0 || limit > remainBytes {
+		limit = remainBytes
+	}
 
 	if offset > 0 {
 		_, err = src.Seek(offset, 0)
@@ -76,29 +82,10 @@ func prepareSourceAndLimit(fromPath string, offset, limit int64) (*os.File, int6
 	return src, limit, nil
 }
 
-func validate(info os.FileInfo, offset int64) error {
-	if !info.Mode().IsRegular() {
-		return ErrUnsupportedFile
-	}
-
-	if offset > info.Size() {
-		return ErrOffsetExceedsFileSize
-	}
-
-	return nil
-}
-
-func tuneLimit(info os.FileInfo, offset, limit int64) int64 {
-	remainBytes := info.Size() - offset
-	if limit == 0 || limit > remainBytes {
-		limit = remainBytes
-	}
-
-	return limit
-}
-
 func copy(src io.Reader, dst io.Writer, limit int64) error {
 	bar := pb.Start64(limit)
+	defer bar.Finish()
+
 	total := int64(0)
 	for {
 		n, err := io.CopyN(dst, src, 1)
@@ -115,7 +102,6 @@ func copy(src io.Reader, dst io.Writer, limit int64) error {
 			break
 		}
 	}
-	bar.Finish()
 
 	return nil
 }
