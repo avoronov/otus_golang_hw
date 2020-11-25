@@ -7,14 +7,11 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
-// var (
-// 	ErrUnsupportedFile       = errors.New("unsupported file")
-// 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
-// )
-
-// Environment represents env vars to be set
+// Environment represents env vars to be set.
 type Environment map[string]string
 
 // ReadDir reads a specified directory and returns map of env variables.
@@ -22,7 +19,7 @@ type Environment map[string]string
 func ReadDir(dir string) (Environment, error) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "got error when read dir %s", dir)
 	}
 
 	env := newEnvironment()
@@ -63,7 +60,7 @@ func newEnvironment() Environment {
 func getFirstLine(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "got error when read file %s", path)
 	}
 	defer file.Close()
 
@@ -74,9 +71,8 @@ func getFirstLine(path string) (string, error) {
 }
 
 func sanitizeVal(s string) string {
-
 	s = strings.TrimRight(s, "\t ")
-	s = string(bytes.Replace([]byte(s), []byte{0x00}, []byte("\n"), -1))
+	s = string(bytes.ReplaceAll([]byte(s), []byte{0x00}, []byte("\n")))
 
 	return s
 }
