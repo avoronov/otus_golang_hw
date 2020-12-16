@@ -1,6 +1,7 @@
 package hw06_pipeline_execution //nolint:golint,stylecheck
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ func TestPipeline(t *testing.T) {
 					time.Sleep(sleepPerStage)
 					out <- f(v)
 				}
+				fmt.Printf("%s stage, in chan is drained or closed, finish stage\n", name)
 			}()
 			return out
 		}
