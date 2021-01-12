@@ -4,8 +4,11 @@ package hw10_program_optimization //nolint:golint,stylecheck
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,4 +39,67 @@ func TestGetDomainStat(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
+}
+
+func Test_parseEmailDomain(t *testing.T) {
+	tests := []struct {
+		name        string
+		in          []byte
+		expectedRes []byte
+		expectedErr error
+	}{
+		{
+			"empty input",
+			[]byte{},
+			nil,
+			ErrMalformedData,
+		},
+		{
+			"no { at the beginning of input",
+			[]byte(`"Id":1,"Name":"name","Username":"username","Email":"nobody@nowhere.org","Phone":"1234567890","Password":"passwd","Address":"address"}`),
+			nil,
+			ErrMalformedData,
+		},
+		{
+			"no } at the end of input",
+			[]byte(`{"Id":1,"Name":"name","Username":"username","Email":"nobody@nowhere.org","Phone":"1234567890","Password":"passwd","Address":"address"`),
+			nil,
+			ErrMalformedData,
+		},
+		{
+			"no Email field in input",
+			[]byte(`{"Id":1,"Name":"name","Username":"username","Phone":"1234567890","Password":"passwd","Address":"address"}`),
+			nil,
+			ErrMalformedData,
+		},
+		{
+			"no \" at the end of email value",
+			[]byte(`{"Id":1,"Name":"name","Username":"username","Email":"nobody@nowhere.org,"Phone":"1234567890","Password":"passwd","Address":"address"}`),
+			nil,
+			ErrMalformedData,
+		},
+		{
+			"no @ in email",
+			[]byte(`{"Id":1,"Name":"name","Username":"username","Email":"nobody","Phone":"1234567890","Password":"passwd","Address":"address"}`),
+			nil,
+			ErrMalformedData,
+		},
+		{
+			"empty email domain part",
+			[]byte(`{"Id":1,"Name":"name","Username":"username","Email":"nobody@","Phone":"1234567890","Password":"passwd","Address":"address"}`),
+			nil,
+			ErrMalformedData,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("case [%s]", tt.name), func(t *testing.T) {
+			actual, err := parseEmailDomain(tt.in)
+			if err == nil {
+				assert.Equal(t, tt.expectedRes, actual, "correct result")
+			} else {
+				assert.True(t, errors.Is(tt.expectedErr, err), "correct error")
+			}
+		})
+	}
 }
